@@ -25,9 +25,10 @@ E2U.update({3: 82, 67: 162, 70: 154, 71: 155, 72: 156, 73: 157, 74: 158, 75: 159
             114: 164, 115: 113, 116: 114, 117: 153, 118: 337})
 E2U_WIDE = {163 + k: 4 + k for k in range(26)}
 U2E = {v: k for k, v in E2U.items()}
-# ---- pairing US id -> EU id (UI texts and card names): macro-expanded English texts, then gaps between pairs of
-# the same offset are filled with that offset (the European text of a slot the English wording of which changed)
-import pair2
+# ---- pairing US id -> EU id: (1) macro-expanded English text next to the same offset (UI texts, card names),
+# gaps between pairs of one offset filled; (2) everywhere else (card effects, tutorial, story text) the same English
+# sentence anywhere in the European English text, the copy nearest to the offset the neighbours have
+import pair2, gmatch
 pp = pair2.pairs(US_EXE, MSG_E, E2U, thr=0.85)
 cand = {i: j for i, (j, r) in pp.items()}
 ids = sorted(cand)
@@ -37,33 +38,49 @@ for x, y in zip(ids, ids[1:]):
     if cand[y] - y == d and y - x <= 12:
         for i in range(x + 1, y):
             cand[i] = i + d; filled += 1
-print('paired', len(pp), 'filled', filled)
+g_added = 0
+gres = gmatch.run_all()          # {us id: [(ratio, eu id), ...]}
+anchors = sorted((i, c[0][1] - i) for i, c in gres.items() if len(c) == 1 and c[0][0] >= 0.9 and gres[i][0][2] >= 6)
+import bisect
+aid = [a for a, _ in anchors]
+def local_offset(i):
+    if not anchors: return 0
+    k = bisect.bisect_left(aid, i)
+    lo = anchors[k-1][1] if k > 0 else anchors[0][1]
+    hi = anchors[k][1] if k < len(anchors) else anchors[-1][1]
+    return (lo + hi) / 2
+for i, c in gres.items():
+    if i in cand or i < 30: continue
+    best = max(r for r, j, n in c)
+    near = [(abs((j - i) - local_offset(i)), j) for r, j, n in c if r >= best - 0.03]
+    cand[i] = min(near)[1]; g_added += 1
+print('paired', len(pp), 'filled', filled, 'by content', g_added, 'total', len(cand))
+# ---- the player-name messages are edited by the game while it runs: macros to them stay macros (EU 3 -> US 2, EU 5 -> US 4)
+NAME_EU2US = {3: 2, 5: 4}
 # ---- Italian messages are written without macros (expanded here), so they stand alone next to the English ones
 def eu_flatten(words, depth=0):
-    """list of tokens (flag, code) of an EU-I message with every macro expanded"""
+    """tokens of an EU-I message with every macro expanded: ('G', flag, code) or ('M', macro word, US id) for a name"""
     out = []; i = 0
     while i < len(words):
         w = words[i]
         if w & 0x4000:
-            w2 = words[i+1]; tgt = im[w2 & 0x3fff]
+            w2 = words[i+1]; tid = w2 & 0x3fff
+            if tid in NAME_EU2US:
+                out.append(('M', w, NAME_EU2US[tid])); i += 2; continue
+            tgt = im[tid]
             count = w & 0x3f; off = (w >> 6) & 0x7f
             q = off
-            while count > 0 and q < len(tgt):
-                sub = eu_flatten_one(tgt, q, depth + 1)
-                toks_, n = sub
-                out += toks_; count -= n; q += n
+            while count > 0 and q < len(tgt) and depth < 8:
+                if tgt[q] & 0x4000:
+                    out += eu_flatten(tgt[q:q+2], depth + 1); n = 2
+                else:
+                    out.append(('G', tgt[q] >> 13 & 1, tgt[q] & 0x1fff)); n = 1
+                count -= n; q += n
                 if tgt[q-1] & 0x8000: break
             i += 2
         else:
-            out.append((w >> 13 & 1, w & 0x1fff)); i += 1
+            out.append(('G', w >> 13 & 1, w & 0x1fff)); i += 1
     return out
-def eu_flatten_one(words, q, depth):
-    if depth > 8: return [], 1
-    w = words[q]
-    if w & 0x4000:
-        toks_ = eu_flatten(words[q:q+2], depth)
-        return toks_, 2
-    return [(w >> 13 & 1, w & 0x1fff)], 1
 used = set()
 for m in um:
     for x in toks(m):
@@ -82,7 +99,10 @@ msgs = {}
 for a, b in sorted(cand.items()):
     t = eu_flatten(im[b])
     if not t: continue
-    ws = [((f << 13) | map_code(f, c)) for f, c in t]
+    ws = []
+    for x in t:
+        if x[0] == 'M': ws += [x[1] & 0x7fff | 0x4000, x[2]]
+        else: ws.append((x[1] << 13) | map_code(x[1], x[2]))
     ws[-1] |= 0x8000
     msgs[a] = ws
 print('Italian messages', len(msgs), 'new glyphs', len(newg), 'words', sum(len(v) for v in msgs.values()))

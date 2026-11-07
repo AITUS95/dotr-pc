@@ -28,3 +28,10 @@ The US title menu labels are pictures in `DATA/TEXETC.MRG` (RH2 items: 8-bit pic
 `build_etc.py US_TEXETC.MRG it_TEXETC.MRG` redraws the labels in Italian (the strings of the European build:
 NUOVA PARTITA, CONTINUA, DUELLO PERSONALIZZATO, SCAMBIO, Premi tasto START); put `it_TEXETC.MRG` next to
 `DotR.exe` with `lang=it` and the port serves it instead of the disc's file (runtime/textpack.c).
+
+## Descriptions, dialogue, HUD labels
+
+`gmatch.py` pairs the English texts of the two discs by content, anywhere in the file (card effects, tutorial and
+story text); `build_pack.py` uses it after the offset pairing. The two player-name messages (US 2 and 4, which the
+game edits while it runs) stay referenced by macro. `build_sys.py` writes `it_TEXSYS.MRG`: the PLAYER / ENEMY plates
+come from the Italian European TEXSYS3.MRG, "Effetto" is drawn. `build_etc.py` also redraws the Rose cards.
