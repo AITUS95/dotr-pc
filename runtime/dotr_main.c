@@ -407,6 +407,7 @@ static int boot(dotr_memory_map *map, const wchar_t *cmd)
     ini_to_env();                               /* lang= must be known before the disc files are read */
     textpack_init();
     if (!elf_load_from_iso("SLUS_205.15", &info, err, sizeof err)) { con_printf("DotR-PC: %s\n", err); return 1; }
+    textpack_after_load();                      /* the UI strings go to their slots; a language pack fills them */
     if (!tramp_install(err, sizeof err)) { con_printf("DotR-PC: %s\n", err); return 1; }
     if (!rc_oracle_init(iso_find, iso_read, err, sizeof err))    /* original code for 3 module call targets */
         hw_log(1, "%s", err);

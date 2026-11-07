@@ -16,7 +16,9 @@
    "old": "s32 Taku_Camp_Event_Window(s32 arg0) {\n    s16 ny;",
    "new": "s32 Taku_Camp_Event_Window(s32 arg0) {\n    s16 ny;\n    rt_dialog_drawn();"
   },
-    {"file": "game_szmsg.c", "why": "language pack: the text of a message may come from runtime/textpack.c", "old": "stream = &StringBlob__SzMsg_LoadFont_Pipe[D_002D19D0__SzMsg_LoadFont_Pipe[msg]];", "new": "stream = dotr_text_stream(msg); /* port */"}
+    {"file": "game_szmsg.c", "why": "language pack: the text of a message may come from runtime/textpack.c", "old": "stream = &StringBlob__SzMsg_LoadFont_Pipe[D_002D19D0__SzMsg_LoadFont_Pipe[msg]];", "new": "stream = dotr_text_stream(msg); /* port */"},
+    {"file": "duel_szduel_builddeck.c", "why": "UI strings are moved to slots (gen/ui_strings.json): a string reached by offset from its neighbour is named itself", "old": "text = D_002BEF80 + 2;", "new": "{ extern char D_002BEF82[]; text = D_002BEF82; }"},
+    {"file": "duel_szduel_builddeck.c", "why": "UI strings are moved to slots (gen/ui_strings.json): a string reached by offset from its neighbour is named itself", "old": "text = D_002BEF93 + 0x30;", "new": "{ extern char D_002BEFC3[]; text = D_002BEFC3; }"}
   ],
  "source_patches": [
   {

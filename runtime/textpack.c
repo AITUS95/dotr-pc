@@ -15,6 +15,9 @@
 #define GLYPH     242
 #define NMSG      3073
 
+extern const unsigned rt_uistr_base, rt_uistr_slot, rt_uistr_n;
+extern const unsigned rt_uistr[][2];
+
 static unsigned short **g_alt;      /* per message id: replacement stream or NULL */
 static int g_state;                  /* 0 not tried, 1 active, 2 off */
 
@@ -36,7 +39,7 @@ static void textpack_load(void)
     }
     f = fopen(path, "rb");
     if (!f) { hw_log(1, "textpack: %s not found: English text", path); return; }
-    if (fread(hdr, 1, 8, f) != 8 || memcmp(hdr, "DOTRIT02", 8)) { fclose(f); hw_log(0, "textpack: bad file %s", path); return; }
+    if (fread(hdr, 1, 8, f) != 8 || memcmp(hdr, "DOTRIT03", 8)) { fclose(f); hw_log(0, "textpack: bad file %s", path); return; }
     if (fread(&n, 4, 1, f) != 1) { fclose(f); return; }
     for (i = 0; i < n; i++) {                       /* glyph images into the free tail of the glyph area */
         unsigned short code;
@@ -53,6 +56,19 @@ static void textpack_load(void)
         w = (unsigned short *)malloc(len * 2u);
         if (fread(w, 2, len, f) != len || id >= NMSG) { free(w); break; }
         g_alt[id] = w;
+    }
+    if (fread(&n, 4, 1, f) == 1) {                    /* UI strings (moved to slots by the port): old address, text */
+        for (i = 0; i < n; i++) {
+            unsigned addr, k, len;
+            unsigned char buf[256];
+            if (fread(&addr, 4, 1, f) != 1 || fread(&len, 4, 1, f) != 1 || len > 255 || fread(buf, 1, len, f) != len) break;
+            for (k = 0; k < rt_uistr_n; k++)
+                if (rt_uistr[k][0] == addr) {
+                    unsigned char *dst = (unsigned char *)(size_t)(rt_uistr_base + rt_uistr_slot * k);
+                    if (len < rt_uistr_slot) { memcpy(dst, buf, len); dst[len] = 0; }
+                    break;
+                }
+        }
     }
     fclose(f);
     g_state = 1;
@@ -87,4 +103,25 @@ void textpack_init(void)
         strcpy(slash ? slash + 1 : path, files[i][1]);
         if (iso_override_file(files[i][0], path)) hw_log(2, "textpack: %s replaced by %s", files[i][0], path);
     }
+}
+
+/* After the executable is in PS2 memory: the UI strings go to their slots (every language), and every pointer to one
+ * in the data now points to its slot. */
+void textpack_after_load(void)
+{
+    unsigned k, a;
+    unsigned char *old_base = (unsigned char *)0;
+    for (k = 0; k < rt_uistr_n; k++) {
+        unsigned char *src = old_base + rt_uistr[k][0], *dst = old_base + rt_uistr_base + rt_uistr_slot * k;
+        unsigned len = rt_uistr[k][1];
+        memset(dst, 0, rt_uistr_slot);
+        memcpy(dst, src, len < rt_uistr_slot - 1 ? len : rt_uistr_slot - 1);
+    }
+    for (a = 0x00286000; a < 0x00351300 && !getenv("DOTR_NOPTRFIX"); a += 4) {              /* pointers in the data to a string of the table */
+        unsigned *p = (unsigned *)(size_t)a, v = *p;
+        if (v < rt_uistr[0][0] || v > rt_uistr[rt_uistr_n - 1][0]) continue;
+        for (k = 0; k < rt_uistr_n; k++)
+            if (v == rt_uistr[k][0]) { if (getenv("DOTR_TEXTLOG")) hw_log(2, "textpack: pointer at %08x -> string %u", a, k); *p = rt_uistr_base + rt_uistr_slot * k; break; }
+    }
+    if (g_state == 0) textpack_load();                          /* a language pack fills the slots now */
 }

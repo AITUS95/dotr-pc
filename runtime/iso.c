@@ -62,9 +62,25 @@ int iso_override_file(const char *disc_path, const char *local_path)
     return 1;
 }
 
+/* DOTR_DISCLOG=1: every disc read in the log with the file it falls in (finding which picture file a screen uses) */
+static void disc_log(uint32_t lba, uint32_t count)
+{
+    static const char *const names[] = { "DATA/BMODULE.MRG", "DATA/CMODULE.MRG", "DATA/MMODULE.MRG", "DATA/ICON.MRG", "DATA/MODEL.MRG",
+        "DATA/MONSTER.MRG", "DATA/PICMINI.MRG", "DATA/PICPACK.MRG", "DATA/PICTURE.MRG", "DATA/STAGECAM.MRG", "DATA/TEXANM.MRG",
+        "DATA/TEXEFF.MRG", "DATA/TEXETC.MRG", "DATA/TEXEVE.MRG", "DATA/TEXSYS.MRG" };
+    static uint32_t fl[16], fs[16];
+    static int init;
+    unsigned i;
+    if (!init) { init = 1; for (i = 0; i < 15; i++) { uint32_t l, sz; if (iso_find(names[i], &l, &sz)) { fl[i] = l; fs[i] = (sz + 2047) / 2048; } } }
+    if (init == 1) { init = 2; }
+    for (i = 0; i < 15; i++)
+        if (fs[i] && lba >= fl[i] && lba < fl[i] + fs[i]) { hw_log(2, "disc: %s +0x%x (%u sectors)", names[i], (lba - fl[i]) * 2048, count); return; }
+}
+
 int iso_read_sectors(uint32_t lba, uint32_t count, void *dst)
 {
     int i;
+    { static int on = -1; if (on < 0) on = getenv("DOTR_DISCLOG") != NULL; if (on) disc_log(lba, count); }
     if (g_nover) {
         uint32_t s;
         for (s = 0; s < count; s++) {

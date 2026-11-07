@@ -14,6 +14,7 @@ int iso_read_sectors(uint32_t lba, uint32_t count, void *dst);
 int iso_find(const char *path, uint32_t *lba, uint32_t *size);
 int iso_override_file(const char *disc_path, const char *local_path);
 void textpack_init(void);
+void textpack_after_load(void);
 
 /* elf.c */
 typedef struct elf_info {

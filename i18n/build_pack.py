@@ -95,6 +95,49 @@ def map_code(flag, e):
     key = (flag, e)
     if key not in newg: newg[key] = first_free + len(newg)
     return newg[key]
+def reflow(ws, maxlines=17, maxpx=384):
+    """the engine keeps 17 lines per text: a longer message is wrapped again at the window width"""
+    nl = nl_us
+    def lines_of(w):
+        n = 1
+        for x in w:
+            if not (x & 0x4000) and (x & 0x1fff) == nl: n += 1
+        return n
+    if lines_of(ws) <= maxlines: return ws
+    end = ws[-1] & 0x8000
+    toks = []                                    # words, with macro pairs kept together
+    i = 0
+    while i < len(ws):
+        if ws[i] & 0x4000: toks.append((ws[i] & 0x7fff, ws[i + 1] & 0x7fff)); i += 2
+        else: toks.append((ws[i] & 0x7fff,)); i += 1
+    # split into words at spaces (code 112 narrow) and newlines
+    words, cur = [], []
+    for t in toks:
+        if len(t) == 1 and (t[0] & 0x1fff) == nl and not (t[0] & 0x4000):
+            if cur: words.append(cur); cur = []
+        elif len(t) == 1 and t[0] == (1 << 13 | 112):
+            if cur: words.append(cur); cur = []
+        else: cur.append(t)
+    if cur: words.append(cur)
+    def wpx(wd): return sum((12 if (t[0] & 0x2000) else 22) if len(t) == 1 else 12 * 8 for t in wd)
+    out, line, px = [], [], 0
+    for wd in words:
+        wp = wpx(wd)
+        if line and px + 12 + wp > maxpx:
+            out.append(line); line, px = [], 0
+        if line: line.append((1 << 13 | 112,)); px += 12
+        line += wd; px += wp
+    if line: out.append(line)
+    res = []
+    for k, ln in enumerate(out):
+        if k: res.append((nl,))
+        res += ln
+    flat = []
+    for t in res:
+        if len(t) == 2: flat += [t[0] | 0x4000, t[1]]
+        else: flat.append(t[0])
+    if end: flat[-1] |= 0x8000
+    return flat if lines_of(flat) <= maxlines else None      # still too long: the English text stays
 msgs = {}
 for a, b in sorted(cand.items()):
     t = eu_flatten(im[b])
@@ -104,6 +147,9 @@ for a, b in sorted(cand.items()):
         if x[0] == 'M': ws += [x[1] & 0x7fff | 0x4000, x[2]]
         else: ws.append((x[1] << 13) | map_code(x[1], x[2]))
     ws[-1] |= 0x8000
+    ws = reflow(ws)
+    if ws is None:
+        print('kept in English (more than 17 lines in Italian):', a); continue
     msgs[a] = ws
 print('Italian messages', len(msgs), 'new glyphs', len(newg), 'words', sum(len(v) for v in msgs.values()))
 def eu_px(e):
@@ -132,8 +178,35 @@ def to_us(px):
                 near = max(out[yy * W + xx] for yy in range(max(0, y-1), min(22, y+2)) for xx in range(max(0, x-1), min(22, x+2)))
                 if near >= 11: out[y * W + x] = 4
     return out
+# ---- the UI string table (menus drawn with the executable's own letters: A-Z, 0-9, space, '-', '?', '%' only; the
+# strings sit in boxes made for the English words, so the Italian ones are chosen to fit; wording follows the
+# European Italian release where it fits)
+import json, os
+UI_IT = {
+ 'NEWCOMER SORT': 'ORD PER NUOVO', 'NAME SORT': 'ORD PER NOME', 'AP SORT': 'ORD PER ATK', 'DP SORT': 'ORD PER DEF',
+ 'TYPE SORT': 'ORD PER TIPO', 'ATTRIBUTE SORT': 'ORD PER ATTRIB', 'LEVEL SORT': 'ORD PER LIV',
+ 'DECK-COSTS SORT': 'ORD PER COSTO', 'RANK SORT': 'ORD PER RANK', 'CARD-COLOR SORT': 'ORD PER COLORE',
+ 'ARE YOU READY ?': 'SEI PRONTO ?', 'YOU WIN': 'HAI VINTO', 'YOU LOSE': 'HAI PERSO', '1P WIN': '1P VINCE',
+ '2P WIN': '2P VINCE', 'DRAW': 'PAREGGIO', 'OPTION': 'OPZIONI', 'SURRENDER': 'RESA', 'PROMOTION': 'PROMOZIONE',
+ 'DEMOTION': 'RETROCESSIONE', 'TREASURE': 'TESORO', 'GET CARD': 'OTTIENI CARTA',
+ 'GET SPECIAL CARD': 'OTTIENI CARTA SPECIALE', 'GRAVEYARD': 'CIMITERO', 'TUTORIAL': 'TUTORIAL',
+ 'CAUTION': 'ATTENZIONE', 'YES': 'SI', 'NO': 'NO', 'BUILD DECK': 'COSTRUISCI', 'CHEST': 'BAULE', 'BACK': 'TORNA',
+ 'EXIT': 'ESCI', 'REINCARNATION': 'REINCARNAZIONE', 'SELECT DECK': 'SELEZ DECK', 'DECK LEADER': 'LEADER DECK',
+ 'LIBRARY': 'BIBLIOT', '  NOW  \nLOADING': 'CARICAMENTO', 'NUMBER %03d': 'NUMERO %03d', 'MOVE': 'MOSSA',
+ 'DETAIL': 'INFO', '3D VIEW': 'VISTA 3D', 'LEADER': 'LEADER', 'PASSWORD': 'PASSWORD', 'TRADE': 'SCAMBIO',
+ 'EXPORTS': 'ESPORTA', 'IMPORTS': 'IMPORTA', '2P': '2P', '1P': '1P', 'TOTAL': 'TOTALE', 'IM': 'IM', 'EX': 'ES',
+ 'EX-SET': 'ES-IM', 'READY': 'PRONTO', 'NOTICE': 'AVVISO', 'CUSTOM': 'PERS', 'OPEN': 'APERTO', 'HIDE': 'NASC',
+ 'CHANGE': 'CAMBIA', 'USE': 'USO', 'NOT USE': 'NON USO', 'START': 'INIZIA', 'EDIT': 'MODIF', 'VS': 'VS',
+}
+ui_it = []
+uijs = json.load(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'ui_strings.json')))
+for addr, ln in uijs['strings']:
+    o = addr - 0x100000 + 26880
+    t = exe[o:o + ln].decode('latin1')
+    if t in UI_IT: ui_it.append((addr, UI_IT[t]))
+print('UI strings', len(ui_it), 'of', len(uijs['strings']))
 with open(OUT, 'wb') as f:
-    f.write(b'DOTRIT02')
+    f.write(b'DOTRIT03')
     f.write(struct.pack('<I', len(newg)))
     for (flag, e), code in newg.items():
         img = to_us(eu_px(e))
@@ -141,5 +214,8 @@ with open(OUT, 'wb') as f:
     f.write(struct.pack('<I', len(msgs)))
     for a, ws in msgs.items():
         f.write(struct.pack('<HH', a, len(ws))); f.write(struct.pack('<%dH' % len(ws), *ws))
-if len(sys.argv) > 5:
-    open(sys.argv[5], 'w').write('patched ids: %s\n' % sorted(msgs))
+    f.write(struct.pack('<I', len(ui_it)))
+    for addr, txt in ui_it:
+        b = txt.encode('latin1'); f.write(struct.pack('<II', addr, len(b))); f.write(b)
+if len(sys.argv) > 6:
+    open(sys.argv[6], 'w').write('patched ids: %s\n' % sorted(msgs))
