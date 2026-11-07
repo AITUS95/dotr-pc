@@ -60,9 +60,9 @@ for text, band in labels:
     s = draw(text, 128, by + 23, 214)
     print('label', text, 'font size', s)
 # "PRESS START BUTTON" (title, rows 188..214, cols 0..196): the game's own cream-coloured text on black
-for y in range(186, 216):
+for y in range(192, 208):                          # only the text rows: the frame ornament starts at row 208
     for x in range(0, 200): px[y * w + x] = 0
-print('label', 'Premi tasto START', draw("PREMI TASTO START", 0, 201, 178, cap_h=12, left=2, white=55))
+print('label', 'Premi tasto START', draw("PREMI TASTO START", 0, 199, 178, cap_h=11, left=2, white=55))
 encode_gs(d, ITEM1, px)
 open(OUT, 'wb').write(d)
 if len(sys.argv) > 3:
