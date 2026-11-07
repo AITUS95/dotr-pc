@@ -1,6 +1,6 @@
 import re, difflib, collections, pickle
 from decode import *
-def norm(t): return re.sub(r'[^a-z0-9 ]','',re.sub(r'~',' ',t.lower())).split()
+def norm(t): return re.sub(r'[^a-z0-9 ]','',re.sub(r'[~-]',' ',t.lower())).split()
 def run(lo=30,hi=3073, thr=0.82):
     us_t={i:norm(us_txt(um[i])) for i in range(lo,hi)}
     eu_t=[norm(eu_txt(m)) for m in em]
@@ -34,9 +34,15 @@ def run_all(lo=30, hi=3073, thr=0.82):
     inv = collections.defaultdict(set)
     for j, ws in enumerate(eu_t):
         for w in set(ws): inv[w].add(j)
+    exact = collections.defaultdict(list)
+    for j, ws in enumerate(eu_t):
+        if ws: exact[tuple(ws)].append(j)
     res = {}
     for i, ws in us_t.items():
-        if len(ws) < 3: continue
+        if len(ws) < 3:                      # short lines: the identical English text anywhere (the copy nearest the offset wins)
+            if len(''.join(ws)) >= 4 and tuple(ws) in exact:
+                res[i] = [(1.0, j, len(ws)) for j in exact[tuple(ws)]]
+            continue
         cnt = collections.Counter()
         for w in set(ws):
             js = inv.get(w)

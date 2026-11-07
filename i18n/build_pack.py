@@ -54,7 +54,25 @@ for i, c in gres.items():
     best = max(r for r, j, n in c)
     near = [(abs((j - i) - local_offset(i)), j) for r, j, n in c if r >= best - 0.03]
     cand[i] = min(near)[1]; g_added += 1
-print('paired', len(pp), 'filled', filled, 'by content', g_added, 'total', len(cand))
+# second fill: a message between two content-paired neighbours that share one offset (short lines such as "Who's there!?")
+import re as _re
+def _norm(t): return _re.sub(r'[^a-z0-9 ]', '', _re.sub(r'~', ' ', t.lower()))
+from decode import us_txt, eu_txt
+filled2 = 0
+ids2 = sorted(cand)
+import bisect as _bi
+for i in range(30, 3073):
+    if i in cand: continue
+    k = _bi.bisect_left(ids2, i)
+    if k == 0 or k >= len(ids2): continue
+    p, n = ids2[k-1], ids2[k]
+    if n - p > 10 or cand[p] - p != cand[n] - n: continue
+    j = i + (cand[p] - p)
+    a, b = _norm(us_txt(um[i])), _norm(eu_txt(em[j]))
+    if not a.strip() and not b.strip(): continue
+    if difflib.SequenceMatcher(None, a, b).ratio() >= 0.3:
+        cand[i] = j; filled2 += 1
+print('paired', len(pp), 'filled', filled, 'by content', g_added, 'filled again', filled2, 'total', len(cand))
 # ---- the player-name messages are edited by the game while it runs: macros to them stay macros (EU 3 -> US 2, EU 5 -> US 4)
 NAME_EU2US = {3: 2, 5: 4}
 # ---- Italian messages are written without macros (expanded here), so they stand alone next to the English ones
@@ -151,6 +169,26 @@ for a, b in sorted(cand.items()):
     if ws is None:
         print('kept in English (more than 17 lines in Italian):', a); continue
     msgs[a] = ws
+
+# ---- a few standalone captions the European text does not have in the same shape, written here
+PUNCT = {'.': 164, ',': 82, '!': 153, '?': 337, "'": 159, '"': 154, '(': 141, ')': 142, '-': 162, ' ': 112}
+ACCENT = {'\u00e0': 119, '\u00e8': 128, '\u00e9': 129, '\u00ec': 132, '\u00f2': 137, '\u00f9': 144}   # EU glyph codes
+def encode_it(text):
+    ws = []
+    for ch in text:
+        if ch == '~': ws.append((1 << 13) | nl_us)
+        elif ch in PUNCT: ws.append((1 << 13) | PUNCT[ch])
+        elif 'A' <= ch <= 'Z': ws.append((1 << 13) | (86 + ord(ch) - 65))
+        elif 'a' <= ch <= 'z': ws.append((1 << 13) | (115 + ord(ch) - 97))
+        elif '1' <= ch <= '9': ws.append((1 << 13) | (143 + ord(ch) - 49))
+        elif ch == '0': ws.append((1 << 13) | 152)
+        elif ch in ACCENT: ws.append((1 << 13) | map_code(1, ACCENT[ch]))
+        else: raise SystemExit('encode_it: no glyph for %r' % ch)
+    ws[-1] |= 0x8000
+    return ws
+MANUAL = {2029: "L'Impero Britannico negli anni 1480...", 2156: "L'Impero Francese, Brest, Isola di Bretagna"}
+for k, v in MANUAL.items():
+    if k not in msgs: msgs[k] = encode_it(v)
 print('Italian messages', len(msgs), 'new glyphs', len(newg), 'words', sum(len(v) for v in msgs.values()))
 def eu_px(e):
     base = i_img_off + e * G
