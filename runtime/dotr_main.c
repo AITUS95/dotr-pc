@@ -404,6 +404,7 @@ static int boot(dotr_memory_map *map, const wchar_t *cmd)
     const wchar_t *fr = wcsstr(cmd, L"--frames ");
     if (!map->ok) { con_printf("DotR-PC: PS2 memory layout not available (run --selftest)\n"); return 1; }
     if (!find_iso(cmd, iso)) { con_printf("DotR-PC: no disc image of the USA game found (last tried: %ls)\n", iso); return 1; }
+    ini_to_env();                               /* lang= must be known before the disc files are read */
     textpack_init();
     if (!elf_load_from_iso("SLUS_205.15", &info, err, sizeof err)) { con_printf("DotR-PC: %s\n", err); return 1; }
     if (!tramp_install(err, sizeof err)) { con_printf("DotR-PC: %s\n", err); return 1; }
@@ -419,7 +420,6 @@ static int boot(dotr_memory_map *map, const wchar_t *cmd)
     rt_headless = gc.headless;              /* watchdog: headless runs stop on a hang, the window keeps going */
     gc.no_draw = gc.headless && !wcsstr(cmd, L"--shots ");    /* nobody looks: keep GS state, skip drawing */
     crash_install();
-    ini_to_env();
     if (!gfx_init(&gc)) { con_printf("DotR-PC: graphics could not start\n"); return 1; }
     {
         void report_init(void);
