@@ -267,6 +267,7 @@ static int selftest(dotr_memory_map *map, const wchar_t *cmd)
         con_printf("  [skip] game executable (needs the memory layout)\n");
         return 1;
     }
+    textpack_init();
     if (!elf_load_from_iso("SLUS_205.15", &info, err, sizeof err)) {
         con_printf("  [FAIL] game executable: %s\n", err);
         return 1;
@@ -349,6 +350,7 @@ static int rc_check_boot(dotr_memory_map *map, const wchar_t *cmd)
     elf_info info;
     if (!map->ok) { con_printf("DotR-PC: PS2 memory layout not available (run --selftest)\n"); return 1; }
     if (!find_iso(cmd, iso)) { con_printf("DotR-PC: no disc image of the USA game found (last tried: %ls)\n", iso); return 1; }
+    textpack_init();
     if (!elf_load_from_iso("SLUS_205.15", &info, err, sizeof err)) { con_printf("DotR-PC: %s\n", err); return 1; }
     if (!tramp_install(err, sizeof err)) { con_printf("DotR-PC: %s\n", err); return 1; }
     rt_headless = 1;
@@ -402,6 +404,7 @@ static int boot(dotr_memory_map *map, const wchar_t *cmd)
     const wchar_t *fr = wcsstr(cmd, L"--frames ");
     if (!map->ok) { con_printf("DotR-PC: PS2 memory layout not available (run --selftest)\n"); return 1; }
     if (!find_iso(cmd, iso)) { con_printf("DotR-PC: no disc image of the USA game found (last tried: %ls)\n", iso); return 1; }
+    textpack_init();
     if (!elf_load_from_iso("SLUS_205.15", &info, err, sizeof err)) { con_printf("DotR-PC: %s\n", err); return 1; }
     if (!tramp_install(err, sizeof err)) { con_printf("DotR-PC: %s\n", err); return 1; }
     if (!rc_oracle_init(iso_find, iso_read, err, sizeof err))    /* original code for 3 module call targets */

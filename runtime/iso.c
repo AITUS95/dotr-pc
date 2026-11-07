@@ -1,4 +1,7 @@
 /* ISO9660 reader for the owner's disc image (read-only). */
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include <windows.h>
 #include <string.h>
 #include "runtime.h"
@@ -37,8 +40,44 @@ int iso_read(uint64_t offset, uint32_t size, void *dst)
     return ok;
 }
 
+/* Files of the disc replaced by a local file of the same layout (language packs: runtime/textpack.c). */
+static struct { uint32_t lba, sectors; unsigned char *data; } g_over[8];
+static int g_nover;
+
+int iso_override_file(const char *disc_path, const char *local_path)
+{
+    uint32_t lba, size;
+    FILE *f;
+    long n;
+    unsigned char *buf;
+    if (g_nover >= 8 || !iso_find(disc_path, &lba, &size)) return 0;
+    f = fopen(local_path, "rb");
+    if (!f) return 0;
+    fseek(f, 0, SEEK_END); n = ftell(f); fseek(f, 0, SEEK_SET);
+    buf = (unsigned char *)calloc(((size_t)size + 2047) & ~(size_t)2047, 1);   /* never longer than the disc's file */
+    if (!buf) { fclose(f); return 0; }
+    if (fread(buf, 1, (size_t)(n < (long)size ? n : (long)size), f) == 0) { fclose(f); free(buf); return 0; }
+    fclose(f);
+    g_over[g_nover].lba = lba; g_over[g_nover].sectors = (size + 2047) / 2048; g_over[g_nover].data = buf; g_nover++;
+    return 1;
+}
+
 int iso_read_sectors(uint32_t lba, uint32_t count, void *dst)
 {
+    int i;
+    if (g_nover) {
+        uint32_t s;
+        for (s = 0; s < count; s++) {
+            int hit = 0;
+            for (i = 0; i < g_nover; i++)
+                if (lba + s >= g_over[i].lba && lba + s < g_over[i].lba + g_over[i].sectors) {
+                    memcpy((unsigned char *)dst + (size_t)s * 2048, g_over[i].data + (size_t)(lba + s - g_over[i].lba) * 2048, 2048);
+                    hit = 1; break;
+                }
+            if (!hit && !iso_read((uint64_t)(lba + s) * 2048u, 2048u, (unsigned char *)dst + (size_t)s * 2048)) return 0;
+        }
+        return 1;
+    }
     return iso_read((uint64_t)lba * 2048u, count * 2048u, dst);
 }
 

@@ -70,3 +70,21 @@ unsigned short *dotr_text_stream(int msg)
     if (g_state == 1 && msg >= 0 && msg < NMSG && g_alt[msg]) return g_alt[msg];
     return (unsigned short *)(size_t)BLOB_ADDR + ((int *)(size_t)TAB_ADDR)[msg];
 }
+
+/* After the disc is open: files of the disc that the language replaces (menu pictures), from it_<NAME> next to the exe. */
+void textpack_init(void)
+{
+    static const char *const files[][2] = { { "DATA/TEXSYS.MRG", "it_TEXSYS.MRG" } };
+    const char *lang = getenv("DOTR_LANG");
+    char path[MAX_PATH], *slash;
+    unsigned i;
+    static int done;
+    if (done || !lang || !*lang || !strcmp(lang, "en")) return;
+    done = 1;
+    for (i = 0; i < sizeof files / sizeof files[0]; i++) {
+        GetModuleFileNameA(NULL, path, MAX_PATH);
+        slash = strrchr(path, '\\');
+        strcpy(slash ? slash + 1 : path, files[i][1]);
+        if (iso_override_file(files[i][0], path)) hw_log(2, "textpack: %s replaced by %s", files[i][0], path);
+    }
+}

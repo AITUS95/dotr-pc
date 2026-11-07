@@ -12,6 +12,8 @@ int iso_open(const wchar_t *path);
 int iso_read(uint64_t offset, uint32_t size, void *dst);
 int iso_read_sectors(uint32_t lba, uint32_t count, void *dst);
 int iso_find(const char *path, uint32_t *lba, uint32_t *size);
+int iso_override_file(const char *disc_path, const char *local_path);
+void textpack_init(void);
 
 /* elf.c */
 typedef struct elf_info {
