@@ -25,21 +25,19 @@ E2U.update({3: 82, 67: 162, 70: 154, 71: 155, 72: 156, 73: 157, 74: 158, 75: 159
             114: 164, 115: 113, 116: 114, 117: 153, 118: 337})
 E2U_WIDE = {163 + k: 4 + k for k in range(26)}
 U2E = {v: k for k, v in E2U.items()}
-# ---- pairing US id -> EU id (UI texts and card names), from the alignment of the English texts
-res, _ = pickle.load(open('stage2.pkl', 'rb'))
-def us_as_eu(t):
-    return [('M',) if x[0] == 'M' else (None if x[1] not in U2E else U2E[x[1]]) for x in t]
-cand = {}
-for a, b in res:
-    if not (30 <= a < 1576 and abs(b - a) <= 6): continue
-    ta, tb = toks(um[a]), toks(em[b])
-    if len(ta) != len(tb): continue
-    xs = us_as_eu(ta); known = [(x, y[1]) for x, y in zip(xs, tb) if y[0] != 'M' and x is not None and x != ('M',)]
-    if len(known) < max(2, len(ta) // 2): continue
-    ok = sum(1 for x, y in known if x == y) / len(known)
-    if ok >= 0.9: cand[a] = b
-n0 = len(cand)
-
+# ---- pairing US id -> EU id (UI texts and card names): macro-expanded English texts, then gaps between pairs of
+# the same offset are filled with that offset (the European text of a slot the English wording of which changed)
+import pair2
+pp = pair2.pairs(US_EXE, MSG_E, E2U, thr=0.85)
+cand = {i: j for i, (j, r) in pp.items()}
+ids = sorted(cand)
+filled = 0
+for x, y in zip(ids, ids[1:]):
+    d = cand[x] - x
+    if cand[y] - y == d and y - x <= 12:
+        for i in range(x + 1, y):
+            cand[i] = i + d; filled += 1
+print('paired', len(pp), 'filled', filled)
 # ---- Italian messages are written without macros (expanded here), so they stand alone next to the English ones
 def eu_flatten(words, depth=0):
     """list of tokens (flag, code) of an EU-I message with every macro expanded"""

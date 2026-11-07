@@ -61,7 +61,12 @@ static void textpack_load(void)
 
 unsigned short *dotr_text_stream(int msg)
 {
+    static unsigned char seen[NMSG];
     if (g_state == 0) textpack_load();
+    if (msg >= 0 && msg < NMSG && !seen[msg] && getenv("DOTR_TEXTLOG")) {      /* each message id once: which texts the game asks for */
+        seen[msg] = 1;
+        hw_log(2, "textpack: message %d %s", msg, (g_state == 1 && g_alt[msg]) ? "italian" : "english");
+    }
     if (g_state == 1 && msg >= 0 && msg < NMSG && g_alt[msg]) return g_alt[msg];
     return (unsigned short *)(size_t)BLOB_ADDR + ((int *)(size_t)TAB_ADDR)[msg];
 }
