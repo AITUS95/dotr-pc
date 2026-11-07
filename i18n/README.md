@@ -20,3 +20,11 @@ the pack; put `it_pack.bin` next to `DotR.exe` and `lang=it` in `DotR-PC.ini`. `
 `SzMsg_LoadFont_Pipe` (rule in `gen/rules.json`) with the Italian stream of the messages the pack holds; every other
 message stays English. Italian messages are written without macros so they stand apart from the English texts.
 Currently the UI texts and card names that pair up with the European English text (about 690 messages).
+
+## Menu pictures
+
+The US title menu labels are pictures in `DATA/TEXETC.MRG` (RH2 items: 8-bit pictures uploaded to the GS as
+64x32 PSMCT32 pages and read back as PSMT8; `texrender.py` decodes and re-encodes them losslessly).
+`build_etc.py US_TEXETC.MRG it_TEXETC.MRG` redraws the labels in Italian (the strings of the European build:
+NUOVA PARTITA, CONTINUA, DUELLO PERSONALIZZATO, SCAMBIO, Premi tasto START); put `it_TEXETC.MRG` next to
+`DotR.exe` with `lang=it` and the port serves it instead of the disc's file (runtime/textpack.c).
