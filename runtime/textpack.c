@@ -74,7 +74,7 @@ unsigned short *dotr_text_stream(int msg)
 /* After the disc is open: files of the disc that the language replaces (menu pictures), from it_<NAME> next to the exe. */
 void textpack_init(void)
 {
-    static const char *const files[][2] = { { "DATA/TEXSYS.MRG", "it_TEXSYS.MRG" } };
+    static const char *const files[][2] = { { "DATA/TEXSYS.MRG", "it_TEXSYS.MRG" }, { "DATA/TEXETC.MRG", "it_TEXETC.MRG" } };
     const char *lang = getenv("DOTR_LANG");
     char path[MAX_PATH], *slash;
     unsigned i;
