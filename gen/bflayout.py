@@ -10,7 +10,7 @@ The value layout test (gen/layout.py) can't see bit-fields; this one can.
 import os, re, subprocess, sys
 from concurrent.futures import ThreadPoolExecutor
 
-LLVM = r'C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Tools\Llvm\bin\clang.exe'
+LLVM = os.environ.get('DOTR_CLANG') or ('clang' if os.name != 'nt' else r'C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Tools\Llvm\bin\clang.exe')
 TARGETS = {
     'ee': ['--target=mipsel-unknown-linux-gnu'],
     'pc': ['--target=i686-pc-windows-msvc'],

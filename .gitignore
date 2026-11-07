@@ -15,3 +15,5 @@ Reports/
 DotR-PC.ini
 botduel-*.log
 tools/release-guard.txt
+/i18n/it_pack.bin
+/linux/*.dll

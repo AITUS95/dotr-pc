@@ -451,6 +451,8 @@ with open(os.path.join(inc, 'port.h'), 'w', newline='\n') as w:
             'void rt_bot_duel_end(int winner, int reason);\nvoid rt_bot_tick(void);\n')
     w.write('/* --debug-menu (dev builds): the first mode after the memory-card check (runtime/dotr_main.c, rules.json) */\n'
             'int rt_first_mode(int mode);\n')
+    w.write('/* alternative text (runtime/textpack.c, rules.json): the glyph stream of message msg */\n'
+            'unsigned short *dotr_text_stream(int msg);\n')
     w.write('/* pad script v2 (runtime/padscript.c): a story event window is drawn (rules.json) */\n'
             'void rt_dialog_drawn(void);\n')
     w.write('/* the EE FPU\'s add (rounds toward zero) where the PC\'s rounding changes the game (runtime/eefloat.c, '

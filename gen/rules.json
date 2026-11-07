@@ -15,8 +15,9 @@
    "why": "pad script v2 (runtime/padscript.c): 'wait dialog' sees a story event window while it is drawn",
    "old": "s32 Taku_Camp_Event_Window(s32 arg0) {\n    s16 ny;",
    "new": "s32 Taku_Camp_Event_Window(s32 arg0) {\n    s16 ny;\n    rt_dialog_drawn();"
-  }
- ],
+  },
+    {"file": "game_szmsg.c", "why": "language pack: the text of a message may come from runtime/textpack.c", "old": "stream = &StringBlob__SzMsg_LoadFont_Pipe[D_002D19D0__SzMsg_LoadFont_Pipe[msg]];", "new": "stream = dotr_text_stream(msg); /* port */"}
+  ],
  "source_patches": [
   {
    "file": "game_szmsg.c",

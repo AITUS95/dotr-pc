@@ -34,7 +34,7 @@ int rt_first_mode(int mode) { return g_debug_menu ? -1 : mode; }
  * DOTR_GPU_STEPPING (for gfx_init) and DOTR_SAVES (runtime/memcard.c); an environment variable already set wins */
 static void ini_to_env(void)
 {
-    static const char *const keys[][2] = { { "renderer=", "DOTR_RENDERER" }, { "gpu_stepping=", "DOTR_GPU_STEPPING" },
+    static const char *const keys[][2] = { { "renderer=", "DOTR_RENDERER" }, { "gpu_stepping=", "DOTR_GPU_STEPPING" }, { "lang=", "DOTR_LANG" },
                                            { "saves=", "DOTR_SAVES" } };
     wchar_t ini[MAX_PATH];
     char line[256];

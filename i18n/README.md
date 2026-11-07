@@ -12,3 +12,11 @@ The European disc keeps the same three blocks in `MSG/MSG_<lang>.DAT` (MWo3 file
 - `glyphs.py`, `rendermsg.py`: render glyph sheets / messages to PNG for inspection.
 
 Paths in the scripts point at files extracted from the two discs (`iso/SLUS_205.15`, `eu/MSG_*.DAT`).
+
+## Using it
+
+`build_pack.py <SLUS_205.15> <MSG_E.DAT> <MSG_I.DAT> it_pack.bin` (files taken from the US and European discs) writes
+the pack; put `it_pack.bin` next to `DotR.exe` and `lang=it` in `DotR-PC.ini`. `runtime/textpack.c` then answers
+`SzMsg_LoadFont_Pipe` (rule in `gen/rules.json`) with the Italian stream of the messages the pack holds; every other
+message stays English. Italian messages are written without macros so they stand apart from the English texts.
+Currently the UI texts and card names that pair up with the European English text (about 690 messages).
