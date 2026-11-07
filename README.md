@@ -1,3 +1,59 @@
+# DotR-PC — branch `italiano`
+
+Fork di [kira-502/dotr-pc](https://github.com/kira-502/dotr-pc) che aggiunge **la traduzione italiana** di
+*Yu-Gi-Oh! The Duelists of the Roses* (USA, SLUS-20515), usando i testi della versione europea (Fr,De,Es,It),
+e gli strumenti per **compilare ed eseguire il port su Linux** (cross-compilazione con clang-cl e Wine).
+
+**Non affiliato a Konami.** Il repository non contiene dati del gioco: servono i tuoi dischi (ISO USA ed europea).
+I file derivati dai dischi (`it_pack.bin`, `it_TEXETC.MRG`, `it_TEXSYS.MRG`) si generano in locale e sono esclusi da git.
+
+## Stato attuale
+
+| Parte | Stato |
+|---|---|
+| Messaggi (interfaccia, nomi e descrizioni delle carte, tutorial, storia) | ~2.750 su ~3.050 in italiano |
+| Titolo e menu principale (immagini) | in italiano |
+| Etichette del duello (GIOCATORE / NEMICO / Effetto), carte Rosa Rossa / Rosa Bianca | in italiano |
+| Costruttore di mazzi, scambio, menu (stringhe dell'eseguibile) | in italiano, con parole accorciate per stare nei riquadri |
+| Circa 50 frasi di dialogo (la versione europea le divide in modo diverso) | ancora in inglese |
+| Piccolo testo sulle carte coperte e sulle cornici Labirinto (texture) | in inglese, come nella versione europea |
+| Un testo di carta con più di 17 righe in italiano | lasciato in inglese (il gioco ne gestisce 17) |
+| Filmato iniziale sotto Wine | non parte |
+| Parole sovrapposte o tagliate in alcune schermate | segnalate, **ancora da individuare** (serve uno screenshot) |
+
+Verificato su screenshot di storia, duello, menu, costruttore di mazzi e scambio; non ancora giocato per intero.
+Il renderer GPU funziona con DXVK (Wine); gli shader si compilano con `d3dcompiler_47.dll` e un `fxc` minimale
+(`linux/`).
+
+## Come funziona la traduzione
+
+- I testi USA sono una tabella di messaggi (sequenze di indici di glifi) nell'eseguibile; la versione europea li ha
+  in `MSG/MSG_<lingua>.DAT`. `i18n/build_pack.py` abbina i messaggi USA a quelli europei (stesso testo inglese, anche
+  in posizioni diverse), espande le macro e scrive `it_pack.bin`.
+- `runtime/textpack.c` (ini: `lang=it`) risponde a `SzMsg_LoadFont_Pipe` con il testo italiano dei messaggi che
+  il pacchetto contiene; gli altri restano in inglese. I nomi dei giocatori, inseriti dal gioco, restano macro.
+- Le stringhe dell'interfaccia dell'eseguibile (`gen/ui_strings.json`) sono spostate in slot propri dal generatore,
+  così il pacchetto può metterci stringhe di lunghezza diversa.
+- Le immagini del menu stanno in `TEXETC.MRG` / `TEXSYS.MRG` (testure RH2): `i18n/build_etc.py` e
+  `i18n/build_sys.py` le ridisegnano; il port serve i file `it_*.MRG` al posto di quelli del disco.
+
+## Uso (Linux)
+
+1. Compila il port come descritto in `linux/` (toolchain CMake per clang-cl, SDK di xwin, `fxc` per Wine).
+2. Estrai dai dischi `SLUS_205.15`, `MSG_E.DAT`, `MSG_I.DAT`, `TEXETC.MRG`, `TEXSYS.MRG` (USA) e `TEXSYS3.MRG` (europeo).
+3. `python3 i18n/build_pack.py SLUS_205.15 MSG_E.DAT MSG_I.DAT it_pack.bin`, `build_etc.py`, `build_sys.py`.
+4. Metti i file accanto a `DotR.exe` con `lang=it` in `DotR-PC.ini`.
+
+Dettagli e note di ricerca: [i18n/README.md](i18n/README.md).
+
+## Prossimi passi
+
+1. Individuare e correggere le parole sovrapposte/tagliate (servono esempi).
+2. Tradurre le ultime frasi di storia rimaste in inglese.
+3. Rendere l'IA degli avversari più difficile (modificando il C in `src/ai` della decompilazione).
+
+---
+
 # DotR-PC
 
 A native Windows port of *Yu-Gi-Oh! The Duelists of the Roses* (PlayStation 2, USA release SLUS-20515), built from
